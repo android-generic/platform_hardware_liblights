@@ -39,6 +39,9 @@ char const*const LLP_BRIGHTNESS_FILE     = "backlight.brightness_file";
 char const*const LLP_MAX_BRIGHTNESS_FILE = "backlight.max_brightness_file";
 char const*const LLP_MAX_BRIGHTNESS      = "backlight.max_brightness";
 
+char const*const DEF_LLP_BRIGHTNESS_FILE     = "/sys/class/backlight/acpi_video0/brightness";
+char const*const DEF_LLP_MAX_BRIGHTNESS_FILE = "/sys/class/backlight/acpi_video0/max_brightness";
+
 void init_globals(void)
 {
     pthread_mutex_init(&g_lock, NULL);
@@ -122,7 +125,7 @@ static int open_lights(const struct hw_module_t* module, char const* name, struc
                 return -EINVAL;
             }
         } else {
-            if (property_get(LLP_MAX_BRIGHTNESS_FILE, max_b_file, NULL)) {
+            if (property_get(LLP_MAX_BRIGHTNESS_FILE, max_b_file, DEF_LLP_MAX_BRIGHTNESS_FILE)) {
                 max_brightness = read_int(max_b_file);
             } else {
                 LOGE("%s system property not set", LLP_MAX_BRIGHTNESS_FILE);
@@ -133,7 +136,7 @@ static int open_lights(const struct hw_module_t* module, char const* name, struc
         if (max_brightness < 1) {
             max_brightness = 255;
         }
-        if (!property_get(LLP_BRIGHTNESS_FILE, brightness_file, NULL)) {
+        if (!property_get(LLP_BRIGHTNESS_FILE, brightness_file, DEF_LLP_BRIGHTNESS_FILE)) {
             LOGE("%s system property not set", LLP_BRIGHTNESS_FILE);
             return -EINVAL;
         }
