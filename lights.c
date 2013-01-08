@@ -61,7 +61,7 @@ static int write_int(char* path, int value)
         return amt == -1 ? -errno : 0;
     } else {
         if (already_warned == 0) {
-            LOGE("write_int failed to open %s\n", path);
+            ALOGE("write_int failed to open %s\n", path);
             already_warned = 1;
         }
         return -errno;
@@ -95,7 +95,7 @@ static int set_light_backlight(struct light_device_t* dev, struct light_state_t 
 {
     int err = 0;
     int brightness = rgb_to_brightness16(state) / (65536 / (max_brightness + 1));
-    LOGV("Setting display brightness to %d", brightness);
+    ALOGV("Setting display brightness to %d", brightness);
 
     pthread_mutex_lock(&g_lock);
     err = write_int(brightness_file, (brightness));
@@ -121,23 +121,23 @@ static int open_lights(const struct hw_module_t* module, char const* name, struc
         char max_b_file[PROPERTY_VALUE_MAX] = { '\0' };
         if (property_get(LLP_MAX_BRIGHTNESS, max_b_file, NULL)) {
             if (!sscanf(max_b_file, "%d", &max_brightness)) {
-                LOGE("%s system property is set to '%s', this could not be parsed as an integer!", LLP_MAX_BRIGHTNESS, max_b_file);
+                ALOGE("%s system property is set to '%s', this could not be parsed as an integer!", LLP_MAX_BRIGHTNESS, max_b_file);
                 return -EINVAL;
             }
         } else {
             if (property_get(LLP_MAX_BRIGHTNESS_FILE, max_b_file, DEF_LLP_MAX_BRIGHTNESS_FILE)) {
                 max_brightness = read_int(max_b_file);
             } else {
-                LOGE("%s system property not set", LLP_MAX_BRIGHTNESS_FILE);
+                ALOGE("%s system property not set", LLP_MAX_BRIGHTNESS_FILE);
                 return -EINVAL;
             }
         }
-        LOGV("Read max display brightness of %d", max_brightness);
+        ALOGV("Read max display brightness of %d", max_brightness);
         if (max_brightness < 1) {
             max_brightness = 255;
         }
         if (!property_get(LLP_BRIGHTNESS_FILE, brightness_file, DEF_LLP_BRIGHTNESS_FILE)) {
-            LOGE("%s system property not set", LLP_BRIGHTNESS_FILE);
+            ALOGE("%s system property not set", LLP_BRIGHTNESS_FILE);
             return -EINVAL;
         }
     } else {
@@ -164,7 +164,7 @@ static struct hw_module_methods_t lights_module_methods = {
     .open = open_lights,
 };
 
-const struct hw_module_t HAL_MODULE_INFO_SYM = {
+struct hw_module_t HAL_MODULE_INFO_SYM = {
     .tag = HARDWARE_MODULE_TAG,
     .version_major = 1,
     .version_minor = 0,
