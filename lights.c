@@ -18,6 +18,8 @@
 
 #include <cutils/log.h>
 
+#include <sys/types.h>
+#include <dirent.h>
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
@@ -38,9 +40,6 @@ static char brightness_file[PROPERTY_VALUE_MAX] = { '\0' };
 char const*const LLP_BRIGHTNESS_FILE     = "backlight.brightness_file";
 char const*const LLP_MAX_BRIGHTNESS_FILE = "backlight.max_brightness_file";
 char const*const LLP_MAX_BRIGHTNESS      = "backlight.max_brightness";
-
-char const*const DEF_LLP_BRIGHTNESS_FILE     = "/sys/class/backlight/acpi_video0/brightness";
-char const*const DEF_LLP_MAX_BRIGHTNESS_FILE = "/sys/class/backlight/acpi_video0/max_brightness";
 
 void init_globals(void)
 {
@@ -110,6 +109,44 @@ static int close_lights(struct light_device_t *dev)
     return 0;
 }
 
+static int check_backlight_file(char const* name, char* path)
+{
+    int ret;
+    if (access(name, F_OK)) {
+        ret = 0;
+    } else {
+        ALOGD("Detect %s", name);
+        strcpy(path, name);
+        ret = 1; // found
+    }
+    return ret;
+}
+
+static int find_backlight_file(char const* file, char* path)
+{
+    int ret;
+    char name[PATH_MAX];
+    const char* dirname = "/sys/class/backlight";
+
+    // Check acpi_video0 first. It seems to work in most cases.
+    snprintf(name, PATH_MAX, "%s/acpi_video0/%s", dirname, file);
+    if (!(ret = check_backlight_file(name, path))) {
+        DIR* dir = opendir(dirname);
+        if (dir != NULL) {
+            struct dirent* de;
+            while ((de = readdir(dir))) {
+                if (de->d_name[0] != '.') {
+                    snprintf(name, PATH_MAX, "%s/%s/%s", dirname, de->d_name, file);
+                    if ((ret = check_backlight_file(name, path))) {
+                        break;
+                    }
+                }
+            }
+            closedir(dir);
+        }
+    }
+    return ret;
+}
 
 static int open_lights(const struct hw_module_t* module, char const* name, struct hw_device_t** device)
 {
@@ -125,10 +162,11 @@ static int open_lights(const struct hw_module_t* module, char const* name, struc
                 return -EINVAL;
             }
         } else {
-            if (property_get(LLP_MAX_BRIGHTNESS_FILE, max_b_file, DEF_LLP_MAX_BRIGHTNESS_FILE)) {
+            if (property_get(LLP_MAX_BRIGHTNESS_FILE, max_b_file, NULL) ||
+                    find_backlight_file("max_brightness", max_b_file)) {
                 max_brightness = read_int(max_b_file);
             } else {
-                ALOGE("%s system property not set", LLP_MAX_BRIGHTNESS_FILE);
+                ALOGE("Unable to detect max_brightness. Try to set %s", LLP_MAX_BRIGHTNESS_FILE);
                 return -EINVAL;
             }
         }
@@ -136,7 +174,8 @@ static int open_lights(const struct hw_module_t* module, char const* name, struc
         if (max_brightness < 1) {
             max_brightness = 255;
         }
-        if (!property_get(LLP_BRIGHTNESS_FILE, brightness_file, DEF_LLP_BRIGHTNESS_FILE)) {
+        if (!property_get(LLP_BRIGHTNESS_FILE, brightness_file, NULL) &&
+                !find_backlight_file("brightness", brightness_file)) {
             ALOGE("%s system property not set", LLP_BRIGHTNESS_FILE);
             return -EINVAL;
         }
