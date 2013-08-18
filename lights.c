@@ -73,8 +73,8 @@ static int read_int(char* path)
 
     fd = open(path, O_RDONLY);
     if (fd >= 0) {
-        char buffer[3];
-        int amt = read(fd, buffer, 3);
+        char buffer[20];
+        int amt = read(fd, buffer, 20);
         close(fd);
         if (amt <= 0) return -errno;
         int ret = -1;
