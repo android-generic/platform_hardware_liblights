@@ -125,25 +125,36 @@ static int check_backlight_file(char const* name, char* path)
 static int find_backlight_file(char const* file, char* path)
 {
     int ret;
+    size_t i;
+    DIR* dir;
     char name[PATH_MAX];
     const char* dirname = "/sys/class/backlight";
+    const char* dirs[] = {
+        "eeepc",
+        "intel_backlight",
+        "thinkpad_screen",
+        "acpi_video0",
+    };
 
-    // Check acpi_video0 first. It seems to work in most cases.
-    snprintf(name, PATH_MAX, "%s/acpi_video0/%s", dirname, file);
-    if (!(ret = check_backlight_file(name, path))) {
-        DIR* dir = opendir(dirname);
-        if (dir != NULL) {
-            struct dirent* de;
-            while ((de = readdir(dir))) {
-                if (de->d_name[0] != '.') {
-                    snprintf(name, PATH_MAX, "%s/%s/%s", dirname, de->d_name, file);
-                    if ((ret = check_backlight_file(name, path))) {
-                        break;
-                    }
+    // Check some known dirs
+    for (i = 0; i < sizeof(dirs) / sizeof(const char*); ++i) {
+        snprintf(name, PATH_MAX, "%s/%s/%s", dirname, dirs[i], file);
+        if (check_backlight_file(name, path)) {
+            return 1;
+        }
+    }
+
+    if ((dir = opendir(dirname))) {
+        struct dirent* de;
+        while ((de = readdir(dir))) {
+            if (de->d_name[0] != '.') {
+                snprintf(name, PATH_MAX, "%s/%s/%s", dirname, de->d_name, file);
+                if ((ret = check_backlight_file(name, path))) {
+                    break;
                 }
             }
-            closedir(dir);
         }
+        closedir(dir);
     }
     return ret;
 }
