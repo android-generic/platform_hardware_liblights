@@ -93,8 +93,12 @@ static int rgb_to_brightness16(struct light_state_t const* state)
 static int set_light_backlight(struct light_device_t* dev, struct light_state_t const* state)
 {
     int err = 0;
-    int brightness = rgb_to_brightness16(state) / (65536 / (max_brightness + 1));
-    ALOGV("Setting display brightness to %d", brightness);
+    int brightness = rgb_to_brightness16(state);
+
+    if (max_brightness < 65536)
+        brightness = brightness / (65536 / (max_brightness + 1));
+    else
+        brightness = brightness * (max_brightness / 65536);
 
     pthread_mutex_lock(&g_lock);
     err = write_int(brightness_file, (brightness));
@@ -124,7 +128,7 @@ static int check_backlight_file(char const* name, char* path)
 
 static int find_backlight_file(char const* file, char* path)
 {
-    int ret;
+    int ret = 0;
     size_t i;
     DIR* dir;
     char name[PATH_MAX];
@@ -140,6 +144,7 @@ static int find_backlight_file(char const* file, char* path)
     for (i = 0; i < sizeof(dirs) / sizeof(const char*); ++i) {
         snprintf(name, PATH_MAX, "%s/%s/%s", dirname, dirs[i], file);
         if (check_backlight_file(name, path)) {
+            ALOGV("Using device %s", name);
             return 1;
         }
     }
