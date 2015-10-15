@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -90,7 +91,7 @@ static int rgb_to_brightness16(struct light_state_t const* state)
     return ((77*((color>>16)&0x00ff)) + (150*((color>>8)&0x00ff)) + (29*(color&0x00ff)));
 }
 
-static int set_light_backlight(struct light_device_t* dev, struct light_state_t const* state)
+static int set_light_backlight(struct light_device_t* dev __attribute__ ((__unused__)), struct light_state_t const* state)
 {
     int err = 0;
     int brightness = rgb_to_brightness16(state);
