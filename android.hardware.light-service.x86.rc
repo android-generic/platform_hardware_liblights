@@ -1,0 +1,13 @@
+on early-boot
+    # Backlight devices
+    chown system system /sys/class/backlight/backlight/brightness
+    chown system system /sys/class/backlight/backlight/max_brightness
+
+    chown system system /sys/class/backlight/intel_backlight/brightness
+    chown system system /sys/class/backlight/intel_backlight/max_brightness
+
+service vendor.light-default /vendor/bin/hw/android.hardware.light-service.x86
+    class hal
+    user system
+    group system
+    shutdown critical
